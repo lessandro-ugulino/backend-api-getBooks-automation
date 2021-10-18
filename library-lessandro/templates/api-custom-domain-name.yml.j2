@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy API Gateway Custom Domain Names
+
+Resources:
+
+  AppDomainName:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: "{{ Route53.RecordName }}"
+      RegionalCertificateArn: !Sub "arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/{{ Route53.CertificateId }}"
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+  AppMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      Stage: "Prod"
+      DomainName: !Ref AppDomainName
+      RestApiId: !ImportValue RestApiID
+
+Outputs:
+  RegionalDomainName:
+    Value: !GetAtt
+      - AppDomainName
+      - RegionalDomainName
+    Export:
+      Name: RegionalDomainName
+  RegionalHostedZoneId:
+    Value: !GetAtt
+      - AppDomainName
+      - RegionalHostedZoneId
+    Export:
+      Name: RegionalHostedZoneId

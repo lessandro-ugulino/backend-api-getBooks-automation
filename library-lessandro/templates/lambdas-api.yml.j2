@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create API
+
+Resources:
+
+  LambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: lessandro-library-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /service-role/
+      Policies:
+        - PolicyName: lessandro-library-policy-role
+          PolicyDocument:
+            Statement:
+              - Sid: dynamodb
+                Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/books'
+              - Sid: logGroup
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: "arn:aws:logs:*:*:*"
+
+  CreateBooksFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: lambda-lessandro-library-create-books
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      Code:
+        S3Bucket: "{{ Lambda.S3Bucket }}"
+        S3Key: "{{ Lambda.S3CreateBooksLambdaPackage }}"
+      MemorySize: 512
+      Timeout: 30
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        !GetAtt LambdaRole.Arn
+
+  GetBooksFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: lambda-lessandro-library-get-books
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      Code:
+        S3Bucket: "{{ Lambda.S3Bucket }}"
+        S3Key: "{{ Lambda.S3GetBooksLambdaPackage }}"
+      MemorySize: 512
+      Timeout: 30
+      TracingConfig:
+        Mode: "Active"
+      Role:
+        !GetAtt LambdaRole.Arn
+
+  LambdaCreateBooksLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
+      LogGroupName: !Sub /aws/lambda/${CreateBooksFunction}
+
+  LambdaGetBooksLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
+      LogGroupName: !Sub /aws/lambda/${GetBooksFunction}
+
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: books
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  RootApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      PathPart: "books"
+      ParentId:
+        Fn::GetAtt: RestApi.RootResourceId
+      RestApiId: !Ref RestApi
+
+  RestApiPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      ResourceId: !Ref RootApiResource
+      RestApiId: !Ref RestApi
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateBooksFunction.Arn}/invocations
+      MethodResponses:
+      - StatusCode: 200
+
+  RestApiGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref RootApiResource
+      RestApiId: !Ref RestApi
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetBooksFunction.Arn}/invocations
+      MethodResponses:
+      - StatusCode: 200
+
+  RestApiProdDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - RestApiPostMethod
+      - RestApiGetMethod
+    Properties:
+      RestApiId: !Ref RestApi
+      StageName: Prod
+
+  ConfigGetBooksLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: GetBooksFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*
+
+  ConfigCreateBooksLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: CreateBooksFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*
+
+Outputs:
+  GetBooksFunctionArn:
+    Description: Get Books Lambda GetFunction ARN
+    Value:
+      Fn::GetAtt: [ "GetBooksFunction", "Arn" ]
+    Export:
+      Name: GetBooksFunctionArn
+  CreateBooksFunctionArn:
+    Description: Create Books Lambda GetFunction ARN
+    Value:
+      Fn::GetAtt: [ "CreateBooksFunction", "Arn" ]
+    Export:
+      Name: CreateBooksFunctionArn
+  GetBooksFunctionName:
+    Description: Lambda GetBooks Name
+    Value: !Ref GetBooksFunction
+    Export:
+      Name: GetBooksFunctionName
+  CreateBooksFunctionName:
+    Description: Lambda GetBooks Name
+    Value: !Ref CreateBooksFunction
+    Export:
+      Name: CreateBooksFunctionName
+  APIGateway:
+    Description: Api Gateway ID
+    Value: !Ref RestApi
+    Export:
+      Name: RestApiID
+  APIUrl:
+    Description: API URL
+    Value:
+      Fn::Sub: https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/

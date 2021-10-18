@@ -1,0 +1,71 @@
+---
+#-----Deploy DynamoDB Table-----
+- name: Create DynamoDB Table Cloudformation from template
+  check_mode: "{{ check_mode_override }}"
+  template:
+    src: dynamodb-table.yml.j2
+    dest: /tmp/dynamodb-table.yml
+
+- name: Submit DynamoDB Table generated template
+  cloudformation:
+    stack_name: stack-dynamodb-lessandro-library
+    region: "{{ RegionName }}"
+    create_changeset: "{{ create_changeset }}"
+    state: "{{ State }}"
+    validate_certs: no
+    template: /tmp/dynamodb-table.yml
+    capabilities:
+      - CAPABILITY_IAM
+      - CAPABILITY_AUTO_EXPAND
+  register: StackDynamoDb
+
+  #-----Deploy Lambdas & API-----
+- name: Create Lambdas & API Cloudformation from template
+  check_mode: "{{ check_mode_override }}"
+  template:
+    src: lambdas-api.yml.j2
+    dest: /tmp/lambdas-api.yml
+
+- name: Submit Lambdas & API generated template
+  cloudformation:
+    stack_name: stack-lambdas-api-lessandro-library
+    region: "{{ RegionName }}"
+    create_changeset: "{{ create_changeset }}"
+    state: "{{ State }}"
+    validate_certs: no
+    template: /tmp/lambdas-api.yml
+  register: StackLambdaAPI
+
+#-----Deploy Custom Domain Name-----
+- name: Create Custom Domain Name Cloudformation from template
+  check_mode: "{{ check_mode_override }}"
+  template:
+    src: api-custom-domain-name.yml.j2
+    dest: /tmp/api-custom-domain-name.yml
+
+- name: Submit Custom Domain Name generated template
+  cloudformation:
+    stack_name: stack-custom-domain-name-lessandro-library
+    region: "{{ RegionName }}"
+    create_changeset: "{{ create_changeset }}"
+    state: "{{ State }}"
+    validate_certs: no
+    template: /tmp/api-custom-domain-name.yml
+  register: StackCustomDomainName
+
+#-----Deploy Route53 Record-----
+- name: Create Route53 Record Cloudformation from template
+  check_mode: "{{ check_mode_override }}"
+  template:
+    src: route53.yml.j2
+    dest: /tmp/route53.yml
+
+- name: Submit Route53 Record generated template
+  cloudformation:
+    stack_name: stack-route53-lessandro-library
+    region: "{{ RegionName }}"
+    create_changeset: "{{ create_changeset }}"
+    state: "{{ State }}"
+    validate_certs: no
+    template: /tmp/route53.yml
+  register: StackRoute53

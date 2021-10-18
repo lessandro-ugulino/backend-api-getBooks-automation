@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy Route53 for API Gateway
+Resources:
+
+  AppRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: "{{ Route53.RecordName }}"
+      HostedZoneName: "{{ Route53.HostedZoneName }}"
+      Type: 'A'
+      AliasTarget:
+        DNSName: !ImportValue RegionalDomainName
+        HostedZoneId: !ImportValue RegionalHostedZoneId

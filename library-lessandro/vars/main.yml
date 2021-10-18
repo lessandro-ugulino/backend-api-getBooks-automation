@@ -1,0 +1,9 @@
+Lambda:
+  S3Bucket: "s3-lessandro" # Make sure to update your S3 bucket
+  S3CreateBooksLambdaPackage: "create-books-py.zip" # the zip (CreateBooks) file with the code used by the Lambda
+  S3GetBooksLambdaPackage: "get-books-py.zip" # the zip (GetBooks) file with the code used by the Lambda
+
+Route53:
+  HostedZoneName: "ugulino.com." #DNS zone
+  RecordName: "library-lessandro.ugulino.com" #Dns record to access the application
+  CertificateId: "5eaa197e-f" #the certificate Id for SSL connection
