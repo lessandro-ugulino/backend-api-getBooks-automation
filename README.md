@@ -2,7 +2,7 @@
 
 - [Introduction](#introduction)
 - [Diagram](#diagram)
-- [Dependencies](#dependencies)
+- [Requirements](#requirements)
 - [Ansible](#ansible)
   - [Playbook Command](#playbook-command)
 - [AWS](#aws)
@@ -28,7 +28,7 @@ The below diagram shows the AWS resources.
 
 ![Diagram](./img/Diagram.png)
 
-## Dependencies
+## Requirements
 
 1. These tools were installed:
 
@@ -200,5 +200,3 @@ Amazon API Gateway is integrated with AWS CloudTrail, a service that provides a 
 5. **_Setup Jenkins or AWS Code Deploy to orchestrate the Ansible deployment._**
 
 6. **_Develop another Lambda to update and delete a book._**
-
-Based on all these points, this application will be more reliable, secure, and available once it's deployed. Therefore, If I had more time I would work on these points.
