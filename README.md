@@ -45,7 +45,7 @@ The below diagram shows the AWS resources.
 
 It'll run the Ansible playbook, executing the defined tasks on the targeted AWS account.
 
-```
+```sh
 ansible-playbook deploy-stack.yml -e RegionName=ap-southeast-2 -e State=present -e create_changeset=yes -e check_mode_override=no
 ```
 
@@ -139,7 +139,7 @@ To create a new Item on DynamoDb, you can use the below command or via Postman a
 
 Example:
 
-```
+```sh
 curl -X "POST" -H "Content-Type: application/json" -d "{\"title\": \"Can't Hurt Me\"}" https://library-lessandro.ugulino.com/books
 ```
 
